@@ -1,0 +1,22 @@
+project:
+  type: website
+
+website:
+  title: "Occupación tigrinus"
+  navbar:
+    right:
+      - href: index.qmd
+        text: Home
+      - about.qmd
+      - icon: github
+        href: https://github.com/
+        aria-label: GitHub
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+editor: visual
+

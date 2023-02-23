@@ -1,0 +1,17 @@
+{
+  "index.qmd": {
+    "index.html": "8f0b287a"
+  },
+  "about.qmd": {
+    "about.html": "073e4a45"
+  },
+  "R/Activity.Rmd": {
+    "Activity.html": "80955f2e"
+  },
+  "R/ensayo1.Rmd": {
+    "ensayo1.html": "ba9c842f"
+  },
+  "R/ensayo1_alejandra.Rmd": {
+    "ensayo1_alejandra.html": "5645cb63"
+  }
+}

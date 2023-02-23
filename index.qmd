@@ -1,0 +1,862 @@
+---
+project:
+  type: website
+
+website:  
+  title: "Occupación tigrinus"
+  subtitle: "co-ocurrencia y actividad"
+  author: "Diego J. Lizcano & Alejandra Bonilla"
+  page-navigation: true
+  navbar:
+    right:
+      - icon: github
+        href: https://github.com/
+        aria-label: GitHub
+
+execute: 
+  echo: true
+  eval: true
+  warning: false
+  error: false
+  output: asis
+  
+format: 
+  html: 
+    code-fold: true
+    code-summary: "codigo R"
+    fig-width: 8
+    fig-height: 6
+---
+
+# cargar paquetes
+
+```{r}
+library(knitr)
+library(tidyverse) # maneja datos
+library(mapview) # mapas facil
+library(readxl) #leer datos
+library(sf) # vector map
+library(geodata) # replace getData de raster para Terra
+library(raster) # mapas raster
+library(spatstat) # interpola mapa
+library(maptools) # to coerce to ppp. note that 'maptools' will be retired by the end of 2023
+# library(stars)
+library(unmarked) # occu models
+library(DT) # html table
+
+
+source("D:/BoxFiles/Box Sync/CodigoR/tigrinus/R/organizadato.R")
+
+```
+
+# UCUMARI
+
+## cargar datos
+
+```{r}
+
+
+Full_data_ucu <- read_excel("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/Full_data_Ucumari_Huila_Cocha1_Cocha2.xlsx", 
+    sheet = "ucumari", col_types = c("numeric", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "numeric", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "text"))
+
+
+
+```
+
+## crerar matrices para unmarked
+
+```{r}
+#| column: screen-inset-shaded
+
+
+casas <- read_csv("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/casas.csv")
+casas_sf <- st_as_sf(casas, coords = c("lon", "lat"), crs = "EPSG:4326")
+
+
+
+
+############# start spatial part
+#### make sf object
+ucumari_sf <- st_as_sf(Full_data_ucu, coords = c("Longitude", "Latitude"), crs = "EPSG:4326")
+
+
+# get centroid. 1st bbox, make pol
+centroid_ucu <- st_centroid(st_as_sfc(st_bbox(ucumari_sf)))
+# get altitude
+elev_ucu_full <- elevation_3s(centroid_ucu[[1]][1], centroid_ucu[[1]][2], 
+                         path="D:/BoxFiles/Box Sync/CodigoR/tigrinus/raster")
+
+# elev_ucu_full_ras <- elev_ucu_full %>% raster()
+
+# st_bbox(ucumari_sf) # notice order xmin, xmax, ymin, ymax
+ext_ucu <- ext(-75.59, -75.47,  4.68,    4.81 )
+elev_ucu <- crop(elev_ucu_full, ext_ucu) 
+
+# convert from terra to raster
+elev_ucu_ras <-  elev_ucu %>% raster()
+
+# get uniques
+cams_ucu <-Full_data_ucu %>% dplyr::select(c("Longitude", "Latitude", "camera_trap")) %>% distinct()
+#### make sf object
+cams_ucu_sf <- st_as_sf(cams_ucu, coords = c("Longitude", "Latitude"), crs = "EPSG:4326")
+
+# extract values from raster using altitude
+cams_ucu_sf$elev <- extract(elev_ucu_ras, cams_ucu_sf)
+
+############## make distance map
+# Convert points to sp spatialpointdatafram
+casas_points <- as(casas_sf, "Spatial")
+# Projection
+# Be sure to have rgdal first installed.
+casas_points_utm <- spTransform(casas_points, CRS('+init=epsg:32718'))
+# convert to ppp
+casas_points_ppp <- as(as(casas_points_utm, "SpatialPoints"), "ppp")
+# distance
+casas_distance <- distmap(casas_points_ppp)
+
+####### extract distance 
+
+casas_distance_ras<- raster(casas_distance) # convert raster
+crs(casas_distance_ras) <- '+init=epsg:32718' # add crs
+
+# project raster
+casa_distance <- projectRaster(casas_distance_ras, crs = crs(casas_points))
+
+# cams_ucu_sf$dist_casa <- raster::extract(casas_distance_ras, cams_ucu_sf)
+cams_ucu_sf$dist_casa <- raster::extract(casa_distance, cams_ucu_sf) # also works
+
+
+# plot map
+mapview(elev_ucu_ras) + mapview(cams_ucu_sf["camera_trap"]) 
+
+############### end spatial part
+
+Full_data_ucu$binomial <- str_c (Full_data_ucu$Genus, "_", Full_data_ucu$Species)
+
+#funcion para crear todas las tablas de datos
+all_data <-  f.matrix.creator2 (Full_data_ucu)
+
+# names(all_data) # ver lass especies y en que lista esta cada una
+# kable(names(all_data)) # html table
+# Tigrinus es lista 8
+
+datatable(
+data = as.data.frame(names(all_data)),
+caption = "Especies Ucumari",
+filter = "top"
+)
+
+
+```
+
+## unmarked
+
+```{r}
+
+# tabla con solo tiginus
+tigrinus_ucu <- all_data[[8]]
+# cargar paquete
+library(unmarked)
+# crear objeto umf
+umf_tigrinus_ucu <- unmarkedFrameOccu(y=tigrinus_ucu)
+# verificar datos en grafica
+# plot(umf_tigrinus_ucu)
+
+# tabla con solo perros
+perros_ucu <- all_data[[75]]
+# crear objeto umf
+umf_perros_ucu <- unmarkedFrameOccu(y=perros_ucu)
+# verificar datos en grafica
+# plot(umf_perros_ucu)
+
+# tabla con solo ocelote
+ocelote_ucu <- all_data[[16]]
+# crear objeto umf
+umf_ocelote_ucu <- unmarkedFrameOccu(y=ocelote_ucu)
+# verificar datos en grafica
+# plot(umf_ocelote_ucu)
+
+```
+
+## Modelo nulo
+
+```{r}
+# modelo nulo tigrinus
+fm_tig_ucu <- occu(~1 ~1, umf_tigrinus_ucu)  # fit a model
+
+backTransform(fm_tig_ucu, type="det") #estimado lineal de deteccion
+backTransform(fm_tig_ucu, type="state") # estimado linel de ocupacion
+
+# modelo nulo perro
+fm_perros_ucu <- occu(~1 ~1, umf_perros_ucu)  # fit a model
+
+backTransform(fm_perros_ucu, type="det") #estimado lineal de deteccion
+backTransform(fm_perros_ucu, type="state") # estimado linel de ocupacion
+
+# modelo nulo ocelote
+fm_ocelote_ucu <- occu(~1 ~1, umf_ocelote_ucu)  # fit a model
+
+backTransform(fm_ocelote_ucu, type="det") #estimado lineal de deteccion
+backTransform(fm_ocelote_ucu, type="state") # estimado linel de ocupacion
+
+
+```
+
+## MODELOS DE CO-OCURRENCIA
+
+```{r}
+
+detformulas <- c( "~1", "~1")#, "~1")
+#stateformulas <- c('~elev','~elev', '~elev', "~1", "~1", "~1", "~0")# 3 sp
+stateformulas <- c('~elev','~elev', "~0")
+y <- list(tigrinus_ucu, perros_ucu)# , ocelote_ucu)
+names(y) <- c("tigrinus", "perros")#, "ocelote")
+
+
+obs_covs <-as.data.frame(scale(cams_ucu_sf$dist_casa))
+names(obs_covs) <- "dist_casa"
+
+site_covs <- data.frame(cams_ucu_sf[,c('elev','dist_casa')])[,1:2]
+site_covs <-as.data.frame(apply(site_covs,2,scale))
+names(site_covs) <- c("elev", "dist_casa")
+
+
+umf <-  unmarkedFrameOccuMulti(y=y, 
+                              siteCovs=site_covs,
+                              obsCovs = NULL)
+plot(umf)
+#umf
+
+# occFormulas Length should match number/order of columns in fDesign
+umf@fDesign
+
+
+fit1 <- occuMulti(detformulas, stateformulas, umf,    
+        method="BFGS", se=TRUE, engine=c("C"), silent=FALSE)
+
+fit1
+
+# update model
+# occFormulas2 <- c('~dist_casa', '~dist_casa', '~dist_casa', "~1", "~1", "~1", "~0")
+occFormulas2 <- c('~dist_casa', '~dist_casa', "~0")
+fit2 <- update(fit1, stateformulas=occFormulas2)
+fit2
+
+#List of fitted models
+fl <- fitList(fit1, fit2)
+coef(fl)
+
+#Model selection
+modSel(fl)
+
+bt <- parboot(fit1, nsim=50) # takes time best model
+plot(bt)
+
+```
+
+### plot predicted marginal occupancy
+
+```{r}
+#Plot predicted marginal occupancy as a function of disturbance
+r <- range(cams_ucu_sf$elev)
+x1 <- seq(r[1],r[2],length.out=100)
+x_scale <- (x1-mean(cams_ucu_sf$elev))/sd(cams_ucu_sf$elev)
+
+r2 <- range(cams_ucu_sf$dist_casa)
+x2 <- seq(r2[1],r2[2],length.out=100)
+x2_scale <- (x2-mean(cams_ucu_sf$dist_casa))/sd(cams_ucu_sf$dist_casa)
+
+nd <- matrix(NA, 100, 2)
+nd <- data.frame(elev=x_scale, dist_casa= x2_scale)
+
+
+
+tigrinus_pred <- predict(fit1, "state", species="tigrinus", newdata=nd)
+tigrinus_pred$Species <- "tigrinus"
+
+perros_pred <- predict(fit1, "state", species="perros", newdata=nd)
+perros_pred$Species <- "perros"
+
+# ocelote_pred <- predict(fit2, "state", species="ocelote", newdata=nd)
+# ocelote_pred$Species <- "ocelote"
+
+
+plot_dat <- rbind(tigrinus_pred, perros_pred)#, ocelote_pred)
+
+ggplot(data=plot_dat, aes(x=rep(x1,2), y=Predicted)) + # change to 3 sp and x2 to distance
+  geom_ribbon(aes(ymin=lower, ymax=upper, fill=Species), alpha=0.3) +
+  geom_line(aes(col=Species)) +
+  labs(x="Elevation", y="Marginal occupancy") +
+  theme_bw() +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
+        axis.text=element_text(size=12), axis.title=element_text(size=14),
+        legend.text=element_text(size=12), legend.title=element_text(size=14))
+
+
+
+```
+
+### plot predicted co-occurrence occupancy
+
+```{r}
+#Plot predicted marginal occupancy as a function of disturbance
+r <- range(cams_ucu_sf$elev)
+x1 <- seq(r[1],r[2],length.out=100)
+x_scale <- (x1-mean(cams_ucu_sf$elev))/sd(cams_ucu_sf$elev)
+
+r2 <- range(cams_ucu_sf$dist_casa)
+x2 <- seq(r2[1],r2[2],length.out=100)
+x2_scale <- (x2-mean(cams_ucu_sf$dist_casa))/sd(cams_ucu_sf$dist_casa)
+
+nd <- matrix(NA, 100, 2)
+nd <- data.frame(elev=x_scale, dist_casa= x2_scale)
+
+
+tigrinus_perros_pred <- predict(fit1, "state", 
+                         species=c("tigrinus", "perros"), newdata=nd)
+
+# tigrinus_pred$Species <- c("tigrinus", "perros")
+
+# perros_pred <- predict(fit1, "state", species="perros", newdata=nd)
+# perros_pred$Species <- "perros"
+
+# ocelote_pred <- predict(fit2, "state", species="ocelote", newdata=nd)
+# ocelote_pred$Species <- "ocelote"
+
+
+plot_dat <- tigrinus_perros_pred #rbind(tigrinus_pred, perros_pred)#, ocelote_pred)
+
+ggplot(data=plot_dat, aes(x=rep(x1), y=Predicted)) + # change to 3 sp and x2 to distance
+  geom_ribbon(aes(ymin=lower, ymax=upper, fill = "grey50"), alpha=0.3) +
+  geom_line(aes(y=Predicted), col="blue") +
+  labs(x="Elevation", y="co-occurence") +
+  theme_bw() +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
+        axis.text=element_text(size=12), axis.title=element_text(size=14),
+        legend.text=element_text(size=12), legend.title=element_text(size=14))
+
+
+
+```
+
+
+### plot predicted conditional occupancy 
+
+```{r}
+#Plot predicted marginal occupancy as a function of disturbance
+r <- range(cams_ucu_sf$elev)
+x1 <- seq(r[1],r[2],length.out=100)
+x_scale <- (x1-mean(cams_ucu_sf$elev))/sd(cams_ucu_sf$elev)
+
+r2 <- range(cams_ucu_sf$dist_casa)
+x2 <- seq(r2[1],r2[2],length.out=100)
+x2_scale <- (x2-mean(cams_ucu_sf$dist_casa))/sd(cams_ucu_sf$dist_casa)
+
+nd <- matrix(NA, 100, 2)
+nd <- data.frame(elev=x_scale, dist_casa= x2_scale)
+
+##### conditional
+
+tigrinus_perro_no <- predict(fit1, "state", 
+                         species="tigrinus", 
+                         cond='-perros',
+                         newdata=nd)
+
+tigrinus_perro_no$Species <- "perro ausente"
+
+tigrinus_perro_si <- predict(fit1, "state", 
+                         species="tigrinus", 
+                         cond='perros',
+                         newdata=nd)
+
+tigrinus_perro_si$Species <- "perro presente"
+
+
+
+
+
+# perros_pred <- predict(fit1, "state", species="perros", newdata=nd)
+# perros_pred$Species <- "perros"
+
+# ocelote_pred <- predict(fit2, "state", species="ocelote", newdata=nd)
+# ocelote_pred$Species <- "ocelote"
+
+
+plot_dat <- rbind(tigrinus_perro_si, tigrinus_perro_no)#, ocelote_pred)
+
+ggplot(data=plot_dat, aes(x=rep(x1,2), y=Predicted)) + # change to 3 sp and x2 to distance
+  geom_ribbon(aes(ymin=lower, ymax=upper, fill=Species), alpha=0.3) +
+  geom_line(aes(col=Species)) +
+  labs(x="Elevation", y="tigrinus conditional occupancy") +
+  theme_bw() +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
+        axis.text=element_text(size=12), axis.title=element_text(size=14),
+        legend.text=element_text(size=12), legend.title=element_text(size=14))
+
+
+
+```
+
+
+
+
+
+
+# JUNTANDO TODOS LOS DATOS
+
+
+
+```{r}
+library(readxl)
+total <- read_delim("C:/CodigoR/tigrinus2/data/total.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE)
+
+
+```
+
+## crerar matrices para unmarked
+
+```{r}
+#funcion para crear todas las tablas de datos
+all_data_total <-  f.matrix.creator2 (total)
+# names(all_data_total) # ver lass especies y en que lista esta cada una
+# Tigrinus es lista 7
+
+datatable(
+data = as.data.frame(names(all_data_total)),
+caption = "Especies Ucumari",
+filter = "top"
+)
+
+
+
+#code to shrink the matrix to exactly 150 columns: Aprox una semana
+f.shrink.matrix.to150<-function(matrix){
+  nc<-dim(matrix)[2]
+  if(!nc%%150){ # of the number of columns is exactly divisible by 15
+    newc<-nc%/%150
+    old.cols<-seq(1,nc,newc)
+    new.matrix<-matrix(NA,nr=nrow(matrix),nc=150)
+    for(i in 1:150){
+      new.matrix[,i]<-apply(matrix[,old.cols[i]:(old.cols[i]+newc-1)],1,max,na.rm=T)
+    }
+  } else{
+    rem<-nc%%150
+    newc<-nc%/%150
+    old.cols<-seq(1,nc-rem,newc)
+    new.matrix<-matrix(NA,nr=nrow(matrix),nc=150)
+    for(i in 1:149)
+      new.matrix[,i]<-apply(matrix[,old.cols[i]:(old.cols[i]+newc-1)],1,max,na.rm=T)
+    new.matrix[,150]<-apply(matrix[,old.cols[150]:nc],1,max,na.rm=T) 
+  }
+  new.matrix[new.matrix=="-Inf"]<-NA
+  rownames(new.matrix)<-rownames(matrix)
+  new.matrix
+}
+
+
+
+
+# tabla con solo tiginus
+tigrinus_total <- all_data_total[[7]]
+
+# colapsa a una semana take tima
+tigrinus_150<-f.shrink.matrix.to150(matrix = all_data_total[[7]])
+
+
+# crear objeto umf
+umf_tigrinus_total <- unmarkedFrameOccu(y=tigrinus_150)
+# verificar datos en grafica
+plot(umf_tigrinus_total)
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+# LAGUNA DE LA COCHA
+
+```{r}
+
+library(readr)
+cocha1_data <- read_excel("C:/CodigoR/tigrinus2/data/Full_data_Ucumari_Huila_Cocha1_Cocha2.xlsx", 
+    sheet = "cocha1")
+
+cocha2_data <- read_excel("C:/CodigoR/tigrinus2/data/Full_data_Ucumari_Huila_Cocha1_Cocha2.xlsx", 
+    sheet = "cocha2")
+
+cocha2_data$binomial <- str_c (cocha2_data$Genus, "_", cocha2_data$Species)
+
+
+
+
+```
+
+## crerar matrices para unmarked
+
+```{r}
+#| column: screen-inset-shaded
+
+
+############# start spatial part
+#### make sf object
+cocha1_sf <- st_as_sf(cocha1_data, coords = c("Longitude", "Latitude"), crs = "EPSG:4326")
+#### make sf object
+cocha2_sf <- st_as_sf(cocha2_data, coords = c("Longitude", "Latitude"), crs = "EPSG:4326")
+
+
+# get centroid. 1st bbox, make pol
+centroid_cocha <- st_centroid(st_as_sfc(st_bbox(cocha1_sf)))
+# get altitude
+elev_cocha_full <- elevation_3s(centroid_cocha[[1]][1], centroid_cocha[[1]][2], 
+                         path="C:/CodigoR/tigrinus2/raster")
+
+# elev_ucu_full_ras <- elev_ucu_full %>% raster()
+
+# st_bbox(ucumari_sf) # notice order xmin, xmax, ymin, ymax
+ext_cocha <- ext(-77.17, -77.05,  0.886,    1.085 )
+elev_cocha <- crop(elev_cocha_full, ext_cocha) 
+
+# convert from terra to raster
+elev_cocha_ras <-  elev_cocha %>% raster()
+
+##### get uniques
+cams_cocha1 <-cocha1_data %>% dplyr::select(c("Longitude", "Latitude", "camera_trap")) %>% distinct()
+#### make sf object
+cams_cocha1_sf <- st_as_sf(cams_cocha1, coords = c("Longitude", "Latitude"), crs = "EPSG:4326")
+
+cams_cocha2 <-cocha2_data %>% dplyr::select(c("Longitude", "Latitude", "camera_trap")) %>% distinct()
+#### make sf object
+cams_cocha2_sf <- st_as_sf(cams_cocha2, coords = c("Longitude", "Latitude"), crs = "EPSG:4326")
+
+
+
+# extract values from raster using altitude
+cams_cocha1_sf$elev <- extract(elev_cocha_ras, cams_cocha1_sf)
+cams_cocha2_sf$elev <- extract(elev_cocha_ras, cams_cocha2_sf)
+
+
+############## make distance map
+# # Convert points to sp spatialpointdatafram
+# casas_points <- as(casas_sf, "Spatial")
+# # Projection
+# # Be sure to have rgdal first installed.
+# casas_points_utm <- spTransform(casas_points, CRS('+init=epsg:32718'))
+# # convert to ppp
+# casas_points_ppp <- as(as(casas_points_utm, "SpatialPoints"), "ppp")
+# # distance
+# casas_distance <- distmap(casas_points_ppp)
+
+####### extract distance 
+# 
+# casas_distance_ras<- raster(casas_distance) # convert raster
+# crs(casas_distance_ras) <- '+init=epsg:32718' # add crs
+# 
+# # project raster
+# casa_distance <- projectRaster(casas_distance_ras, crs = crs(casas_points))
+
+
+# extracr raster values
+# cams_ucu_sf$dist_casa <- raster::extract(casas_distance_ras, cams_ucu_sf)
+cams_cocha1_sf$dist_casa <- raster::extract(casa_distance, cams_cocha1_sf) # also works
+cams_cocha2_sf$dist_casa <- raster::extract(casa_distance, cams_cocha2_sf) # also works
+
+
+# plot map
+mapview(elev_cocha_ras) + mapview(cams_cocha1_sf["camera_trap"]) + mapview(cams_cocha2_sf["camera_trap"]) 
+
+############### end spatial part
+
+# fix cocha2 data
+# cocha2_data$binomial <- str_c (cocha2_data$Genus, "_", cocha2_data$Species)
+
+#funcion para crear todas las tablas de datos
+all_data_cocha1 <-  f.matrix.creator2 (cocha1_data)
+all_data_cocha2 <-  f.matrix.creator2 (cocha2_data)
+# names(all_data) # ver lass especies y en que lista esta cada una
+
+
+# kable(names(all_data_cocha1)) # html table
+# Tigrinus es lista 11 y perro 2
+
+# kable(names(all_data_cocha2)) # html table
+# Tigrinus es 30
+# Perro no hay
+
+datatable(
+data = as.data.frame(names(all_data_cocha1)),
+caption = "Especies Ucumari",
+filter = "top"
+)
+
+
+
+```
+
+## unmarked
+
+```{r}
+# tabla con solo tiginus
+tigrinus_cocha1 <- all_data_cocha1[[11]]
+tigrinus_cocha2 <- all_data_cocha2[[30]]
+# cargar paquete
+library(unmarked)
+# crear objeto umf
+umf_tigrinus_cocha1 <- unmarkedFrameOccu(y=tigrinus_cocha1)
+umf_tigrinus_cocha2 <- unmarkedFrameOccu(y=tigrinus_cocha2)
+# verificar datos en grafica
+plot(umf_tigrinus_cocha1)
+plot(umf_tigrinus_cocha2)
+
+
+# tabla con solo perro
+perros_cocha1 <- all_data_cocha1[[2]]
+# cargar paquete
+library(unmarked)
+# crear objeto umf
+umf_perros_cocha1 <- unmarkedFrameOccu(y=perros_cocha1)
+# verificar datos en grafica
+plot(umf_perros_cocha1)
+
+
+```
+
+## Modelo nulo
+
+```{r}
+
+# modelo nulo
+fm_tig_cocha1 <- occu(~1 ~1, umf_tigrinus_cocha1)  # fit a model
+fm_tig_cocha2 <- occu(~1 ~1, umf_tigrinus_cocha2)  # fit a model
+
+backTransform(fm_tig_cocha1, type="det") #estimado lineal de deteccion
+backTransform(fm_tig_cocha1, type="state") # estimado linel de ocupacion
+
+backTransform(fm_tig_cocha2, type="det") #estimado lineal de deteccion
+backTransform(fm_tig_cocha2, type="state") # estimado linel de ocupacion
+
+# modelo nulo
+fm_perros_cocha1 <- occu(~1 ~1, umf_perros_cocha1)  # fit a model
+
+backTransform(fm_perros_cocha1, type="det") #estimado lineal de deteccion
+backTransform(fm_perros_cocha1, type="state") # estimado linel de ocupacion
+
+
+```
+
+
+## MODELOS DE CO-OCURRENCIA
+
+```{r}
+
+detformulas <- c( "~1", "~1")#, "~1")
+#stateformulas <- c('~elev','~elev', '~elev', "~1", "~1", "~1", "~0")# 3 sp
+stateformulas <- c('~elev','~elev', "~0")
+y <- list(tigrinus_cocha1, perros_cocha1)# , ocelote_ucu)
+names(y) <- c("tigrinus", "perros")#, "ocelote")
+
+
+obs_covs <-as.data.frame(scale(cams_cocha1_sf$dist_casa))
+names(obs_covs) <- "dist_casa"
+
+site_covs <- data.frame(cams_cocha1_sf[,c('elev','dist_casa')])[,1:2]
+site_covs <-as.data.frame(apply(site_covs,2,scale))
+names(site_covs) <- c("elev", "dist_casa")
+
+
+umf <-  unmarkedFrameOccuMulti(y=y, 
+                              siteCovs=site_covs,
+                              obsCovs = NULL)
+plot(umf)
+#umf
+
+# occFormulas Length should match number/order of columns in fDesign
+umf@fDesign
+
+
+fit1 <- occuMulti(detformulas, stateformulas, umf,    
+        method="BFGS", se=TRUE, engine=c("C"), silent=FALSE)
+
+fit1
+
+# update model
+# occFormulas2 <- c('~dist_casa', '~dist_casa', '~dist_casa', "~1", "~1", "~1", "~0")
+occFormulas2 <- c('~dist_casa', '~dist_casa', "~0")
+fit2 <- update(fit1, stateformulas=occFormulas2)
+fit2
+
+#List of fitted models
+fl <- fitList(fit1, fit2)
+coef(fl)
+
+#Model selection
+modSel(fl)
+
+bt <- parboot(fit2, nsim=50) # takes time
+plot(bt)
+
+```
+
+### plot predicted marginal occupancy
+
+```{r}
+#Plot predicted marginal occupancy as a function of disturbance
+r <- range(cams_cocha1_sf$elev)
+x1 <- seq(r[1],r[2],length.out=100)
+x_scale <- (x1-mean(cams_cocha1_sf$elev))/sd(cams_cocha1_sf$elev)
+
+r2 <- range(cams_cocha1_sf$dist_casa)
+x2 <- seq(r2[1],r2[2],length.out=100)
+x2_scale <- (x2-mean(cams_cocha1_sf$dist_casa))/sd(cams_cocha1_sf$dist_casa)
+
+nd <- matrix(NA, 100, 2)
+nd <- data.frame(elev=x_scale, dist_casa= x2_scale)
+
+
+
+tigrinus_pred <- predict(fit2, "state", species="tigrinus", newdata=nd)
+tigrinus_pred$Species <- "tigrinus"
+
+perros_pred <- predict(fit2, "state", species="perros", newdata=nd)
+perros_pred$Species <- "perros"
+
+# ocelote_pred <- predict(fit2, "state", species="ocelote", newdata=nd)
+# ocelote_pred$Species <- "ocelote"
+
+
+plot_dat <- rbind(tigrinus_pred, perros_pred)#, ocelote_pred)
+
+ggplot(data=plot_dat, aes(x=rep(x1,2), y=Predicted)) + # change to 3 sp and x2 to distance
+  geom_ribbon(aes(ymin=lower, ymax=upper, fill=Species), alpha=0.3) +
+  geom_line(aes(col=Species)) +
+  labs(x="Elevation", y="Marginal occupancy") +
+  theme_bw() +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
+        axis.text=element_text(size=12), axis.title=element_text(size=14),
+        legend.text=element_text(size=12), legend.title=element_text(size=14))
+
+
+
+```
+
+
+### plot predicted co-occurrence occupancy
+
+```{r}
+#Plot predicted marginal occupancy as a function of disturbance
+r <- range(cams_cocha1_sf$elev)
+x1 <- seq(r[1],r[2],length.out=100)
+x_scale <- (x1-mean(cams_cocha1_sf$elev))/sd(cams_cocha1_sf$elev)
+
+r2 <- range(cams_ucu_sf$dist_casa)
+x2 <- seq(r2[1],r2[2],length.out=100)
+x2_scale <- (x2-mean(cams_cocha1_sf$dist_casa))/sd(cams_cocha1_sf$dist_casa)
+
+nd <- matrix(NA, 100, 2)
+nd <- data.frame(elev=x_scale, dist_casa= x2_scale)
+
+
+tigrinus_perros_pred <- predict(fit2, "state", 
+                         species=c("tigrinus", "perros"), newdata=nd)
+
+# tigrinus_pred$Species <- c("tigrinus", "perros")
+
+# perros_pred <- predict(fit1, "state", species="perros", newdata=nd)
+# perros_pred$Species <- "perros"
+
+# ocelote_pred <- predict(fit2, "state", species="ocelote", newdata=nd)
+# ocelote_pred$Species <- "ocelote"
+
+
+plot_dat <- tigrinus_perros_pred #rbind(tigrinus_pred, perros_pred)#, ocelote_pred)
+
+ggplot(data=plot_dat, aes(x=rep(x1), y=Predicted)) + # change to 3 sp and x2 to distance
+  geom_ribbon(aes(ymin=lower, ymax=upper, fill = "grey50"), alpha=0.3) +
+  geom_line(aes(y=Predicted), col="blue") +
+  labs(x="Elevation", y="co-occurence") +
+  theme_bw() +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
+        axis.text=element_text(size=12), axis.title=element_text(size=14),
+        legend.text=element_text(size=12), legend.title=element_text(size=14))
+
+
+
+```
+
+
+### plot predicted conditional occupancy 
+
+```{r}
+#Plot predicted marginal occupancy as a function of disturbance
+r <- range(cams_cocha1_sf$elev)
+x1 <- seq(r[1],r[2],length.out=100)
+x_scale <- (x1-mean(cams_cocha1_sf$elev))/sd(cams_cocha1_sf$elev)
+
+r2 <- range(cams_cocha1_sf$dist_casa)
+x2 <- seq(r2[1],r2[2],length.out=100)
+x2_scale <- (x2-mean(cams_cocha1_sf$dist_casa))/sd(cams_cocha1_sf$dist_casa)
+
+nd <- matrix(NA, 100, 2)
+nd <- data.frame(elev=x_scale, dist_casa= x2_scale)
+
+##### conditional
+
+tigrinus_perro_no <- predict(fit2, "state", 
+                         species="tigrinus", 
+                         cond='-perros',
+                         newdata=nd)
+
+tigrinus_perro_no$Species <- "perro ausente"
+
+tigrinus_perro_si <- predict(fit2, "state", 
+                         species="tigrinus", 
+                         cond='perros',
+                         newdata=nd)
+
+tigrinus_perro_si$Species <- "perro presente"
+
+
+
+
+
+# perros_pred <- predict(fit1, "state", species="perros", newdata=nd)
+# perros_pred$Species <- "perros"
+
+# ocelote_pred <- predict(fit2, "state", species="ocelote", newdata=nd)
+# ocelote_pred$Species <- "ocelote"
+
+
+plot_dat <- rbind(tigrinus_perro_si, tigrinus_perro_no)#, ocelote_pred)
+
+ggplot(data=plot_dat, aes(x=rep(x1,2), y=Predicted)) + # change to 3 sp and x2 to distance
+  geom_ribbon(aes(ymin=lower, ymax=upper, fill=Species), alpha=0.3) +
+  geom_line(aes(col=Species)) +
+  labs(x="Elevation", y="tigrinus conditional occupancy") +
+  theme_bw() +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
+        axis.text=element_text(size=12), axis.title=element_text(size=14),
+        legend.text=element_text(size=12), legend.title=element_text(size=14))
+
+
+
+```
+
+
+
+
+

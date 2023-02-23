@@ -1,0 +1,16 @@
+{
+  "hash": "c33de53655da51ff65166f28ce5ec935",
+  "result": {
+    "markdown": "---\ntitle: \"About\"\nauthor: \"Diego J. Lizcano & Alejandra Bonilla\"\n---\n\n\nSite to complie results. Co-occurence tigrinus and domestic dog\n\n\n::: {.cell}\n\n:::\n",
+    "supporting": [
+      "about_files"
+    ],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}
