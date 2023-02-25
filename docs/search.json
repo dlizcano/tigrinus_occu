@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "Occupación tigrinus",
     "section": "",
-    "text": "codigo R\nlibrary(knitr)\nlibrary(tidyverse) # maneja datos\nlibrary(mapview) # mapas facil\nlibrary(readxl) #leer datos\nlibrary(sf) # vector map\nlibrary(geodata) # replace getData de raster para Terra\nlibrary(raster) # mapas raster\nlibrary(spatstat) # interpola mapa\nlibrary(maptools) # to coerce to ppp. note that 'maptools' will be retired by the end of 2023\nlibrary(rgdal) # rgdal will be retired during 2023 #some tricks to change projection\n# library(stars)\n# library(unmarked) # occu models\nlibrary(DT) # html table\n\n\nsource(\"C:/CodigoR/tigrinus2/R/organizadato.R\")"
+    "text": "Multispecies occupancy model from Rota et al. (2016), for two (or more) interacting species. The model generalizes the standard single-species occupancy model from MacKenzie et al. (2002). We used Leopardus tigrinus and domestic dog data from 6 sites sampled with arrays of camera traps."
   },
   {
     "objectID": "index.html#cargar-datos",
