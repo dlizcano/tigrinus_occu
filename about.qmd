@@ -1,9 +1,12 @@
 ---
 title: "About"
 author: "Diego J. Lizcano & Alejandra Bonilla"
+date: "22-02-2023"
+
 ---
 
-Site to complie results. Co-occurence tigrinus and domestic dog
+Site to complie results. Co-occurence tigrinus and domestic dog. 
+
 
 ```{r}
 

@@ -75,3 +75,32 @@ f.matrix.creator2<-function(data,year){
   res
   
 }
+
+
+
+
+#code to shrink the matrix to exactly 26 columns: Aprox una semana
+f.shrink.matrix.to26<-function(matrix){
+  nc<-dim(matrix)[2]
+  if(!nc%%26){ # of the number of columns is exactly divisible by 15
+    newc<-nc%/%26
+    old.cols<-seq(1,nc,newc)
+    new.matrix<-matrix(NA,nr=nrow(matrix),nc=26)
+    for(i in 1:26){
+      new.matrix[,i]<-apply(matrix[,old.cols[i]:(old.cols[i]+newc-1)],1,max,na.rm=T)
+    }
+  } else{
+    rem<-nc%%26
+    newc<-nc%/%26
+    old.cols<-seq(1,nc-rem,newc)
+    new.matrix<-matrix(NA,nr=nrow(matrix),nc=26)
+    for(i in 1:25)
+      new.matrix[,i]<-apply(matrix[,old.cols[i]:(old.cols[i]+newc-1)],1,max,na.rm=T)
+    new.matrix[,26]<-apply(matrix[,old.cols[26]:nc],1,max,na.rm=T) 
+  }
+  new.matrix[new.matrix=="-Inf"]<-NA
+  rownames(new.matrix)<-rownames(matrix)
+  new.matrix
+}
+
+
