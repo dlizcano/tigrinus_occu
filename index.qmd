@@ -4,7 +4,7 @@ project:
 
 website:  
   title: "Occupación tigrinus"
-  subtitle: "co-ocurrencia y actividad"
+  subtitle: "co-ocurrencia"
   author: "Diego J. Lizcano & Alejandra Bonilla"
   page-navigation: true
   navbar:
@@ -33,23 +33,120 @@ format:
 
 ```{r}
 library(knitr)
-library(tidyverse) # maneja datos
 library(mapview) # mapas facil
 library(readxl) #leer datos
 library(sf) # vector map
 library(geodata) # replace getData de raster para Terra
-library(raster) # mapas raster
+library(terra) # mapas raster. former raster package
 library(spatstat) # interpola mapa
-library(maptools) # to coerce to ppp. note that 'maptools' will be retired by the end of 2023
-library(rgdal) # rgdal will be retired during 2023 #some tricks to change projection
+library(camtrapR)
+# library(maptools) # to coerce to ppp. note that 'maptools' will be retired by the end of 2023
+# library(rgdal) # rgdal will be retired during 2023 #some tricks to change projection
 # library(stars)
 # library(unmarked) # occu models
 library(DT) # html table
+library(tidyverse)
 
-
-source("C:/CodigoR/tigrinus2/R/organizadato.R")
+source("R/organizadato.R")
 
 ```
+
+# ITUANGO
+
+```{r}
+Ituango <- read_excel("data/Ituango_cut.xlsx", sheet = "Ituango_cut")
+
+# filter and make uniques
+CToperation_Ituango <- Ituango |> 
+            # dplyr::rename(Deployment_id="Deployment ID") |> 
+            dplyr::mutate(year=year(as_date(Photo_Date)))|> 
+            dplyr::mutate(Deployment_id="Ituango") |> 
+            distinct(Longitude, Latitude, camera_trap_start_date, camera_trap_end_date, year, cameratrap, Deployment_id, ID)
+
+# Generamos la matríz de operación de las cámaras
+
+camop_Ituango  <- cameraOperation(CTtable= CToperation_Ituango , # Tabla de operación
+                         stationCol= "ID", # define la estación
+                         setupCol= "camera_trap_start_date", #Columna fecha de colocación
+                         retrievalCol= "camera_trap_end_date", #Columna fecha de retiro
+                         #hasProblems= T, # Hubo fallos de cámaras
+                         dateFormat= "%Y-%m-%d", #, # Formato de las fechas
+                         cameraCol="camera_trap",
+                         byCamera=TRUE)#,
+                         #sessionCol= "year")
+
+
+## remove problem species
+# # ind <- which(ecu14$scientificName=="Cerdocyon thous")
+# ind <- which(is.na(pitalito$scientificName))
+#  pitalito <- pitalito[-ind,]
+
+DetHist_list <- lapply(unique(Ituango$binomial), FUN = function(x) {
+  detectionHistory(
+    recordTable         = Ituango, # Tabla de registros
+    camOp                = camop_Ituango, # Matriz de operación de cámaras
+    stationCol           = "ID",
+    speciesCol           = "binomial",
+    recordDateTimeCol    = "Photo_Date",
+    recordDateTimeFormat  = "%Y-%m-%d",
+    species              = x,     # la función reemplaza x por cada una de las especies
+    occasionLength       = 17, # Colapso de las historias a 10 días
+    day1                 = "station", #inicie en la fecha de cada survey
+    datesAsOccasionNames = FALSE,
+    includeEffort        = TRUE,
+    scaleEffort          = FALSE,
+    #unmarkedMultFrameInput=TRUE
+    timeZone             = "America/Bogota" 
+    )
+  }
+)
+
+# names
+names(DetHist_list) <- unique(cocha$scientificName)
+# Finalmente creamos una lista nueva donde estén solo las historias de detección
+ylist <- lapply(DetHist_list, FUN = function(x) x$detection_history)
+effortlist <- lapply(DetHist_list, FUN = function(x) x$effort)
+
+### Danta, Puma, Oso
+which(unique(cocha$scientificName)=="Tapirus pinchaque")
+which(unique(cocha$scientificName)=="Puma concolor")
+which(unique(cocha$scientificName)=="Tremarctos ornatus")
+
+###########################################
+danta <- as.data.frame(ylist[[6]])
+danta$Deployment_id <- rownames(as.data.frame(ylist[[6]]))
+danta_effort <- as.data.frame(effortlist[[6]]) 
+colnames(danta_effort) <- (c("e1","e2","e3","e4"))
+
+danta <- danta |> left_join(CToperation_cocha) |>  
+              select(!c(start_date, end_date, year)) |> 
+              cbind(danta_effort) |> write.csv("C:/CodigoR/CameraTrapCesar/data/danta_cocha.csv")
+
+######################################
+puma <- as.data.frame(ylist[[2]])
+puma$Deployment_id <- rownames(as.data.frame(ylist[[2]]))
+puma_effort <- as.data.frame(effortlist[[2]]) 
+colnames(puma_effort) <- (c("e1","e2","e3","e4"))
+
+puma <- puma |> left_join(CToperation_cocha) |>  
+              select(!c(start_date, end_date, year)) |> 
+              cbind(puma_effort) |> write.csv("C:/CodigoR/CameraTrapCesar/data/puma_cocha.csv")
+############################################
+
+oso <- as.data.frame(ylist[[15]])
+oso$Deployment_id <- rownames(as.data.frame(ylist[[15]]))
+oso_effort <- as.data.frame(effortlist[[15]]) 
+colnames(oso_effort) <- (c("e1","e2","e3","e4"))
+
+oso <- oso |> left_join(CToperation_cocha) |>  
+              select(!c(start_date, end_date, year)) |> 
+              cbind(oso_effort) |> write.csv("C:/CodigoR/CameraTrapCesar/data/oso_cocha.csv")
+
+
+
+
+```
+
 
 # UCUMARI
 
