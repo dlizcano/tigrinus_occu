@@ -1,12 +1,16 @@
 ---
 title: "About"
-author: "Diego J. Lizcano & Alejandra Bonilla"
-date: "22-02-2023"
-
+author: 
+  - name: Alejandra Bonilla
+    orcid: https://orcid.org/0000-0003-0803-5884
+  - name: Diego J. Lizcano
+    orcid: https://orcid.org/0000-0002-9648-0576
+date: "02-02-2023"
 ---
 
-Site to complie results. Co-occurence tigrinus and domestic dog. 
+# CO-OCURRENCIA DEL TIGRILLO LANUDO (*Leopardus trigrinus*) CON PERROS DOMÉSTICOS A LO LARGO DE LOS ANDES COLOMBIANOS
 
+El tigrillo lanudo (Leopardus tigrinus) en Colombia está restringido a bosques de niebla y páramos. La presencia de animales domésticos en estos ambientes suele ser frecuente, debido a las poblaciones locales y el manejo tradicional que se les ha dado. En términos generales, a las mascotas se les permite ir y venir a voluntad, incluyendo su desplazamiento en hábitats naturales sin ningún tipo de supervisión. El impacto de la presencia de perros en ambientes naturales ha sido documentado previamente en términos de competencia, depredación y recientemente se han identificado como vectores de enfermedades perjudiciales para la fauna silvestre, como sarna y parvovirus. El objetivo de este trabajo fue determinar como la altitud y la distancia a las casas influyen en la co-ocurrencia de tigrillos y perros domésticos, así como identificar si existe segregación temporal en estas áreas de co-ocurrencia. Usamos datos de 302 sitios en los que se ubicaron trampas cámara para construir modelos de co-ocurrencia, usando el paquete unmarked en R, para seis localidades en los Andes colombianos: altiplano norte de Antioquia, oriente antioqueño, Ucumari (Risaralda), Pitalito (Huila) y dos sitios en la Laguna de La Cocha (Nariño). Los resultados obtenidos muestran que ambas especies co-ocurren en menos del 8% de los sitios muestreados y que la elevación y la distancia a las casas influyen en la co-ocurrencia de las dos especies a escala local, a escala regional la distancia a las casas fue más importante. Adicional a la baja co-ocurrencia ambas especies presentan una alta segregación temporal.
 
 ```{r}
 

@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # cargar paquetes
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=FALSE}
 library(tidyverse) # maneja datos
 library(mapview) # mapas facil
 library(readxl) # leer datos
@@ -33,7 +33,7 @@ source("D:/BoxFiles/Box Sync/CodigoR/tigrinus/R/organizadato.R")
 
 # cargar datos
 
-```{r}
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=FALSE}
 
 
 Huila_data <-  read_delim("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/huila_merged.csv", 
@@ -47,7 +47,7 @@ Huila_data <-  read_delim("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/huila_merg
 
 # mapa casas
 
-```{r}
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=FALSE}
 ##### read SHP ####
 # casas <- st_read("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/Casas_1-point.shp")
 # casas <- read_csv("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/casas.csv")
@@ -81,7 +81,7 @@ casas_shp <- read_sf("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/casas.shp")
 
 # Crerar matrices para unmarked
 
-```{r}
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=FALSE}
 ### Fix tables to use the function f.matrix.creator2 
 
 Huila_data$binomial <- Huila_data$"Genus Species" #str_c (Huila_data$Genus, "_", Huila_data$Species)
@@ -124,7 +124,7 @@ all_data <-  f.matrix.creator2 (Huila_data)
 
 ### Actividad del tigrillo y perro
 
-```{r warning=FALSE, message=FALSE}
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=FALSE}
 
 activityOverlap (recordTable = camaras,
                  speciesA    = "Leopardus tigrinus",
@@ -165,7 +165,7 @@ dev.off( )
 
 ### Mapa del tigrinus (rojo) y el perro (azul)
 
-```{r mapa_sps1, warning=FALSE, message=FALSE}
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=FALSE}
 
 tigrinus <- filter(camaras, Species=="Leopardus tigrinus")
 by_sp <- camaras %>%  group_by(Species) %>% tally()

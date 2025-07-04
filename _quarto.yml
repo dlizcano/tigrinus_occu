@@ -9,12 +9,12 @@ website:
         text: Home
       - about.qmd
       - icon: github
-        href: https://github.com/
+        href: https://github.com/dlizcano/tigrinus_occu
         aria-label: GitHub
 
 format:
   html:
-    theme: cosmo
+    theme: Flatly
     css: styles.css
     toc: true
 
