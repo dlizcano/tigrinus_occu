@@ -21,7 +21,7 @@ navbar:
 
 execute: 
   echo: true
-  eval: true
+  eval: false
   warning: false
   error: false
   output: asis
@@ -57,6 +57,7 @@ We used *Leopardus tigrinus* and domestic dog data from 8 regions across the Col
 library(knitr)
 library(mapview) # mapas facil
 library(readxl) #leer datos
+library(xlsx) # write dato
 library(readr) # lee datos
 library(sf) # vector map
 library(geodata) # replace getData de raster para Terra
@@ -84,10 +85,10 @@ source("C:/CodigoR/WCS-CameraTrap/R/organiza_datos_v3.R") # new version
 
 ## Cargar datos
 
-### Ucumari, Pitalito, La cocha1, La Fe, Rio Grande, La cocha2, Ituango, Chingaza, Saldaña y Bogotá.  
+### Ucumari, Pitalito, La cocha1, La Fe, Rio Grande, La cocha2, Ituango, Chingaza y Saldaña.
 
 ```{r}
-#| eval: false
+
 
 Full_data_ucu <- read_excel("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/Full_data_Ucumari_Huila_Cocha1_Cocha2.xlsx", 
     sheet = "ucumari", col_types = c("numeric", 
@@ -157,18 +158,6 @@ chingaza_data <- chingaza |> filter(chingaza$Photo_date <= "2020-01-31")
 perro_Saldania <- read_csv("C:/CodigoR/tigrinus2/data/perro_Saldania.csv")
 tigrinus_Saldania <- read_csv("C:/CodigoR/tigrinus2/data/tigrinus_Saldania.csv")
 
-###############
-casas_Bogota <- read_csv("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/dist_casas_Bogota.csv") 
-
-perro_Bogota <- read_csv("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/Perros_Bog_occ_7D_BAY_bloques_edited.csv") |> left_join(casas_Bogota) |> as.data.frame()
-row.names(perro_Bogota) <- perro_Bogota$camera_trap
-
-tigrinus_Bogota <- read_csv("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/Tigrillo_Bog_occ_7D_BAY_bloques_edited.csv") |> left_join(casas_Bogota) |> as.data.frame()
-row.names(tigrinus_Bogota) <- tigrinus_Bogota$camera_trap
-
-effort_Bogota <- read_csv("D:/BoxFiles/Box Sync/CodigoR/tigrinus/data/effort_Bog_occ_7D_BAY_bloques_edited.csv") |> left_join(casas_Bogota) |> as.data.frame()
-row.names(effort_Bogota) <- effort_Bogota$camera_trap
-
 
 
 ```
@@ -178,7 +167,7 @@ row.names(effort_Bogota) <- effort_Bogota$camera_trap
 ## falta: to include forest (GFW) cover y huella humana
 
 ```{r}
-#| eval: false
+
 
 
 
@@ -191,62 +180,70 @@ casas_sf <- st_read("C:/CodigoR/tigrinus2/data/casas.shp")
 ############# start spatial part
 #### make sf object
 ucumari <- Full_data_ucu |> 
-  select("Latitude",
+  select("camera_trap",
+         "Latitude",
          "Longitude",
-          "camera_trap") |>
+         "camera_trap") |>
   dplyr::distinct( ) |> 
   mutate(region="Ucumari RP")
   
 
 pitalito <- Full_data_pitalito |> 
-    select("Latitude",
+  select("camera_trap",
+         "Latitude",
          "Longitude",
-          "camera_trap") |>
+         "camera_trap") |>
   dplyr::distinct( ) |> 
   mutate(region="Pitalito")
 
 cocha1 <- Full_data_cocha1 |> 
-    select("Latitude",
+  select("camera_trap",
+         "Latitude",
          "Longitude",
-          "camera_trap") |>
+         "camera_trap") |>
   dplyr::distinct( ) |> 
   mutate(region="Cocha1")
 
 cocha2 <- Full_data_cocha2 |> 
-    select("Latitude",
+  select("camera_trap",
+         "Latitude",
          "Longitude",
-          "camera_trap") |>
-  dplyr::distinct( ) |> 
+         "camera_trap") |>
+  dplyr::distinct( ) |>  
   mutate(region="Cocha2")
 
 lafe <- lafe_data  |> 
-    select("Latitude",
+  select("camera_trap",
+         "Latitude",
          "Longitude",
-          "camera_trap") |>
+         "camera_trap") |>
   dplyr::distinct( ) |> 
   mutate(region="La Fe")
 
 riogrande <- riogrande_data  |> 
-    select("Latitude",
+  select("camera_trap",
+         "Latitude",
          "Longitude",
-          "camera_trap") |>
+         "camera_trap") |>
   dplyr::distinct( ) |> 
   mutate(region="Rio Grande")
 
 ituango <- ituango_data  |> 
-    select("Latitude",
+  select("camera_trap",
+         "Latitude",
          "Longitude",
-          "camera_trap") |>
-  dplyr::distinct( ) |> 
+         "camera_trap") |>
+  dplyr::distinct( ) |>  
   mutate(region="Ituango")
 
 
 
 
 chingaza <- chingaza_data  |> 
-    select("Latitude",
+  select("camera_trap",
+         "Latitude",
          "Longitude",
-          "camera_trap") |>
+         "camera_trap") |>
   dplyr::distinct( ) |> 
   mutate(region="Chingaza NP")
 
@@ -255,18 +252,12 @@ chingaza <- chingaza_data  |>
 saldania <- tigrinus_Saldania  |> mutate(camera_trap=deployment_id_cam) |> 
   mutate(Longitude=longitude) |> 
   mutate(Latitude=latitude) |> 
-    select("Latitude",
+  select("camera_trap",
+         "Latitude",
          "Longitude",
-          "camera_trap") |>
+         "camera_trap") |>
   dplyr::distinct( ) |> 
   mutate(region="Saldaña")
-
-bogota <- tigrinus_Bogota |> 
-    select("Latitude",
-         "Longitude",
-          "camera_trap") |>
-    mutate(region="Bogota")
-
 
 
 # join
@@ -278,8 +269,7 @@ puntos <- rbind(ucumari,
                 ituango,
                 cocha2,
                 chingaza,
-                saldania,
-                bogota)
+                saldania)
 
 
 
@@ -304,8 +294,7 @@ puntos <- rbind(ucumari,
 #### crerar historias detección
 
 ```{r}
-#| eval: false
-#| 
+
 # make species names
 Full_data_ucu$binomial <- str_c (Full_data_ucu$Genus, "_", Full_data_ucu$Species)
 
@@ -583,8 +572,8 @@ ucu_DetHist_list <- lapply(unique(Full_data_ucu$scientificName), FUN = function(
     recordDateTimeFormat  = "%Y-%m-%d %H:%M:%S",
     species              = x,     # la función reemplaza x por cada una de las especies
     occasionLength       = 8, # Colapso de las historias a 10 ías
-    day1                 = "station", # "survey" a specific date, "station", #inicie en la fecha de cada survey
-    datesAsOccasionNames = FALSE,
+    day1                 = "survey", # "survey" a specific date, "station", #inicie en la fecha de cada survey
+    datesAsOccasionNames = TRUE,
     includeEffort        = TRUE,
     scaleEffort          = FALSE,
     #unmarkedMultFrameInput=TRUE
@@ -599,6 +588,15 @@ names(ucu_DetHist_list) <- unique(Full_data_ucu$scientificName)
 ucumari_ylist <- lapply(ucu_DetHist_list, FUN = function(x) x$detection_history)
 # otra lista con effort scaled
 ucumari_efort <- lapply(ucu_DetHist_list, FUN = function(x) x$effort) 
+
+
+my_path <- "C:/CodigoR/tigrinus2/data/ToAleja/"
+
+write.xlsx2(ucumari_ylist[[7]], paste0(my_path, "Ucumari.xlsx"), row.names = FALSE, sheetName = "tigrinus")                                      # Write xlsx file
+write.xlsx2(ucumari_ylist[[18]], paste0(my_path, "Ucumari.xlsx"), row.names = FALSE, sheetName = "dog", append = TRUE)                       # Append to second sheet
+write.xlsx2(ucumari_efort[[1]], paste0(my_path, "Ucumari.xlsx"), row.names = FALSE, sheetName = "effort", append = TRUE)                       # Append to third sheet
+write.xlsx2(as.data.frame(ucumari), paste0(my_path, "Ucumari.xlsx"), row.names = TRUE, sheetName = "camera", append = TRUE)                       # Append to third sheet
+
 
 # number of observetions per sp, collapsed to 7 days
 # lapply(ylist, sum, na.rm = TRUE)
@@ -618,9 +616,9 @@ pitalito_DetHist_list <- lapply(unique(Full_data_pitalito$scientificName), FUN =
     recordDateTimeCol    = "eventDateTime",
     recordDateTimeFormat  = "%Y-%m-%d %H:%M:%S",
     species              = x,     # la función reemplaza x por cada una de las especies
-    occasionLength       = 6, # Colapso de las historias a 10 días
-    day1                 = "station", # "survey" a specific date, "station", #inicie en la fecha de cada survey
-    datesAsOccasionNames = FALSE,
+    occasionLength       = 6, # Colapso de las historias a 10 ías
+    day1                 = "survey", # "survey" a specific date, "station", #inicie en la fecha de cada survey
+    datesAsOccasionNames = TRUE,
     includeEffort        = TRUE,
     scaleEffort          = FALSE,
     #unmarkedMultFrameInput=TRUE
@@ -640,6 +638,14 @@ pitalito_efort <- lapply(pitalito_DetHist_list, FUN = function(x) x$effort)
 # perro 41
 # tigrinus 5
 
+write.xlsx2(pitalito_ylist[[5]], paste0(my_path, "Pitalito.xlsx"), row.names = FALSE, sheetName = "tigrinus")                                      # Write xlsx file
+write.xlsx2(pitalito_ylist[[41]], paste0(my_path, "Pitalito.xlsx"), row.names = FALSE, sheetName = "dog", append = TRUE)                       # Append to second sheet
+write.xlsx2(pitalito_efort[[1]], paste0(my_path, "Pitalito.xlsx"), row.names = FALSE, sheetName = "effort", append = TRUE)                       # Append to third sheet
+write.xlsx2(as.data.frame(pitalito), paste0(my_path, "Pitalito.xlsx"), row.names = TRUE, sheetName = "camera", append = TRUE)                       # Append to third sheet
+
+
+
+
 ############## La Fe
 
 # lafe_data <- lafe_data |> 
@@ -656,8 +662,8 @@ lafe_DetHist_list <- lapply(unique(lafe_data$scientificName), FUN = function(x) 
     recordDateTimeFormat  = "%Y-%m-%d %H:%M:%S",
     species              = x,     # la función reemplaza x por cada una de las especies
     occasionLength       = 7, # Colapso de las historias a 10 días
-    day1                 = "station", # "survey" a specific date, "station", #inicie en la fecha de cada survey
-    datesAsOccasionNames = FALSE,
+    day1                 = "survey", # "survey" a specific date, "station", #inicie en la fecha de cada survey
+    datesAsOccasionNames = TRUE,
     includeEffort        = TRUE,
     scaleEffort          = FALSE,
     #unmarkedMultFrameInput=TRUE
@@ -677,6 +683,12 @@ lafe_efort <- lapply(lafe_DetHist_list, FUN = function(x) x$effort)
 # perro 2
 # tigrinus 3
 
+write.xlsx2(lafe_ylist[[3]], paste0(my_path, "LaFe.xlsx"), row.names = FALSE, sheetName = "tigrinus")                                      # Write xlsx file
+write.xlsx2(lafe_ylist[[2]], paste0(my_path, "LaFe.xlsx"), row.names = FALSE, sheetName = "dog", append = TRUE)                       # Append to second sheet
+write.xlsx2(lafe_efort[[1]], paste0(my_path, "LaFe.xlsx"), row.names = FALSE, sheetName = "effort", append = TRUE)                       # Append to third sheet
+write.xlsx2(as.data.frame(lafe), paste0(my_path, "LaFe.xlsx"), row.names = TRUE, sheetName = "camera", append = TRUE)                       # Append to third sheet
+
+
 
 ############## Rio Grande
 
@@ -694,8 +706,8 @@ riogrande_DetHist_list <- lapply(unique(riogrande_data$scientificName), FUN = fu
     recordDateTimeFormat  = "%Y-%m-%d %H:%M:%S",
     species              = x,     # la función reemplaza x por cada una de las especies
     occasionLength       = 8, # Colapso de las historias a 10 días
-    day1                 = "station", # "survey" a specific date, "station", #inicie en la fecha de cada survey
-    datesAsOccasionNames = FALSE,
+    day1                 = "survey", # "survey" a specific date, "station", #inicie en la fecha de cada survey
+    datesAsOccasionNames = TRUE,
     includeEffort        = TRUE,
     scaleEffort          = FALSE,
     #unmarkedMultFrameInput=TRUE
@@ -715,6 +727,13 @@ riogrande_efort <- lapply(riogrande_DetHist_list, FUN = function(x) x$effort)
 # perro 2
 # tigrinus 3
 
+write.xlsx2(riogrande_ylist[[3]], paste0(my_path, "RioGrande.xlsx"), row.names = FALSE, sheetName = "tigrinus")                                      # Write xlsx file
+write.xlsx2(riogrande_ylist[[2]], paste0(my_path, "RioGrande.xlsx"), row.names = FALSE, sheetName = "dog", append = TRUE)                       # Append to second sheet
+write.xlsx2(riogrande_efort[[1]], paste0(my_path, "RioGrande.xlsx"), row.names = FALSE, sheetName = "effort", append = TRUE)                       # Append to third sheet
+write.xlsx2(as.data.frame(riogrande), paste0(my_path, "RioGrande.xlsx"), row.names = TRUE, sheetName = "camera", append = TRUE)                       # Append to third sheet
+
+
+
 ############## Ituango
 
 # lafe_data <- lafe_data |> 
@@ -731,8 +750,8 @@ ituango_DetHist_list <- lapply(unique(ituango_data$scientificName), FUN = functi
     recordDateTimeFormat  = "%Y-%m-%d %H:%M:%S",
     species              = x,     # la función reemplaza x por cada una de las especies
     occasionLength       = 13, # Colapso de las historias a 10 días
-    day1                 = "station", # "survey" a specific date, "station", #inicie en la fecha de cada survey
-    datesAsOccasionNames = FALSE,
+     day1                 = "survey", # "survey" a specific date, "station", #inicie en la fecha de cada survey
+    datesAsOccasionNames = TRUE,
     includeEffort        = TRUE,
     scaleEffort          = FALSE,
     #unmarkedMultFrameInput=TRUE
@@ -752,6 +771,11 @@ ituango_efort <- lapply(ituango_DetHist_list, FUN = function(x) x$effort)
 # perro 5
 # tigrinus 26
 
+write.xlsx2(ituango_ylist[[26]], paste0(my_path, "Ituango.xlsx"), row.names = FALSE, sheetName = "tigrinus")                                      # Write xlsx file
+write.xlsx2(ituango_ylist[[5]], paste0(my_path, "Ituango.xlsx"), row.names = FALSE, sheetName = "dog", append = TRUE)                       # Append to second sheet
+write.xlsx2(ituango_efort[[1]], paste0(my_path, "Ituango.xlsx"), row.names = FALSE, sheetName = "effort", append = TRUE)                       # Append to third sheet
+write.xlsx2(as.data.frame(ituango), paste0(my_path, "Ituango.xlsx"), row.names = TRUE, sheetName = "camera", append = TRUE)                       # Append to third sheet
+
 
 
 
@@ -767,8 +791,8 @@ chingaza_DetHist_list <- lapply(unique(chingaza_data$scientificName), FUN = func
     recordDateTimeFormat  = "%Y-%m-%d %H:%M:%S",
     species              = x,     # la función reemplaza x por cada una de las especies
     occasionLength       = 13, # Colapso de las historias a 10 días
-    day1                 = "station", # "survey" a specific date, "station", #inicie en la fecha de cada survey
-    datesAsOccasionNames = FALSE,
+    day1                 = "survey", # "survey" a specific date, "station", #inicie en la fecha de cada survey
+    datesAsOccasionNames = TRUE,
     includeEffort        = TRUE,
     scaleEffort          = FALSE,
     #unmarkedMultFrameInput=TRUE
@@ -789,12 +813,20 @@ chingaza_efort <- lapply(chingaza_DetHist_list, FUN = function(x) x$effort)
 # tigrinus 2
 
 
+write.xlsx2(chingaza_ylist[[2]], paste0(my_path, "Chingaza.xlsx"), row.names = FALSE, sheetName = "tigrinus")                                      # Write xlsx file
+write.xlsx2(chingaza_ylist[[1]], paste0(my_path, "Chingaza.xlsx"), row.names = FALSE, sheetName = "dog", append = TRUE)                       # Append to second sheet
+write.xlsx2(chingaza_efort[[1]], paste0(my_path, "Chingaza.xlsx"), row.names = FALSE, sheetName = "effort", append = TRUE)                       # Append to third sheet
+write.xlsx2(as.data.frame(chingaza), paste0(my_path, "Chingaza.xlsx"), row.names = TRUE, sheetName = "camera", append = TRUE)                       # Append to third sheet
+
+
+
+
 ```
 
 ## cocha data
 
 ```{r}
-#| eval: false
+
 
 # fix dates
 
@@ -861,8 +893,8 @@ cocha1_DetHist_list <- lapply(unique(Full_data_cocha1$scientificName), FUN = fun
     recordDateTimeFormat  = "%Y-%m-%d %H:%M:%S",
     species              = x,     # la función reemplaza x por cada una de las especies
     occasionLength       = 8, # Colapso de las historias a 10 ías
-    day1                 = "station", # "survey" a specific date, "station", #inicie en la fecha de cada survey
-    datesAsOccasionNames = FALSE,
+    day1                 = "survey", # "survey" a specific date, "station", #inicie en la fecha de cada survey
+    datesAsOccasionNames = TRUE,
     includeEffort        = TRUE,
     scaleEffort          = FALSE,
     #unmarkedMultFrameInput=TRUE
@@ -884,6 +916,14 @@ cocha1_efort <- lapply(cocha1_DetHist_list, FUN = function(x) x$effort)
 
 # leopardus tigrinus 9
 # canis 1
+
+
+write.xlsx2(cocha1_ylist[[9]], paste0(my_path, "Cocha1.xlsx"), row.names = FALSE, sheetName = "tigrinus")                                      # Write xlsx file
+write.xlsx2(cocha1_ylist[[1]], paste0(my_path, "Cocha1.xlsx"), row.names = FALSE, sheetName = "dog", append = TRUE)                       # Append to second sheet
+write.xlsx2(cocha1_efort[[1]], paste0(my_path, "Cocha1.xlsx"), row.names = FALSE, sheetName = "effort", append = TRUE)                       # Append to third sheet
+write.xlsx2(as.data.frame(cocha1), paste0(my_path, "Cocha1.xlsx"), row.names = TRUE, sheetName = "camera", append = TRUE)                       # Append to third sheet
+
+
 
 ############################
 #### Cocha 2
@@ -950,8 +990,8 @@ cocha2_DetHist_list <- lapply(unique(Full_data_cocha2$scientificName), FUN = fun
     recordDateTimeFormat  = "%Y-%m-%d %H:%M:%S",
     species              = x,     # la función reemplaza x por cada una de las especies
     occasionLength       = 13, # Colapso de las historias a 10 ías
-    day1                 = "station", # "survey" a specific date, "station", #inicie en la fecha de cada survey
-    datesAsOccasionNames = FALSE,
+    day1                 = "survey", # "survey" a specific date, "station", #inicie en la fecha de cada survey
+    datesAsOccasionNames = TRUE,
     includeEffort        = TRUE,
     scaleEffort          = FALSE,
     #unmarkedMultFrameInput=TRUE
@@ -959,6 +999,7 @@ cocha2_DetHist_list <- lapply(unique(Full_data_cocha2$scientificName), FUN = fun
     )
   }
 )
+
 
 # names
 names(cocha2_DetHist_list) <- unique(Full_data_cocha2$scientificName)
@@ -975,6 +1016,14 @@ cocha2_efort <- lapply(cocha2_DetHist_list, FUN = function(x) x$effort)
 # canis NA
 
 
+write.xlsx2(cocha2_ylist[[29]], paste0(my_path, "Cocha2.xlsx"), row.names = FALSE, sheetName = "tigrinus")                                      # Write xlsx file
+write.xlsx2(cocha2_ylist[[1]], paste0(my_path, "Cocha2.xlsx"), row.names = FALSE, sheetName = "dog", append = TRUE)                       # Append to second sheet
+write.xlsx2(cocha2_efort[[1]], paste0(my_path, "Cocha2.xlsx"), row.names = FALSE, sheetName = "effort", append = TRUE)                       # Append to third sheet
+write.xlsx2(as.data.frame(cocha2), paste0(my_path, "Cocha2.xlsx"), row.names = TRUE, sheetName = "camera", append = TRUE)                       # Append to third sheet
+
+
+
+
 # Pitalito
 # perro 41
 # tigrinus 5
@@ -986,10 +1035,6 @@ cocha2_efort <- lapply(cocha2_DetHist_list, FUN = function(x) x$effort)
 ## Data assembly
 
 ```{r}
-#| eval: false
-
-
-
 #### Cocha 2
 tigrinus_cocha2 <- cocha2_ylist[[29]] |> as.data.frame()
 effort_cocha2 <- cocha2_efort[[29]] |>  as.data.frame() |> 
@@ -1117,8 +1162,7 @@ DL_tigrinus <- rbind(tigrinus_ucumari,
                      tigrinus_ituango,
                      tigrinus_cocha2,
                      tigrinus_chingaza,
-                     tigrinus_saldania,
-                     tigrinus_Bogota[,2:11])
+                     tigrinus_saldania)
                      # tigrinus_cocha2
                      #)
 
@@ -1130,8 +1174,7 @@ DL_perros <- rbind(perros_ucumari,
                    perros_ituango,
                    perros_cocha2,
                    perros_chingaza,
-                   perros_saldania,
-                   perro_Bogota[,2:11])
+                   perros_saldania)
 
 DL_effort <- rbind(effort_ucumari,
                 effort_pitalito,
@@ -1141,8 +1184,7 @@ DL_effort <- rbind(effort_ucumari,
                 effort_ituango,
                 perros_cocha2,
                 perros_chingaza,
-                effort_Saldania,
-                effort_Bogota[,2:11])
+                effort_Saldania)
 
 # add colname to later extract  covs
 DL_tigrinus$camera_trap <- row.names(DL_tigrinus)
@@ -1154,8 +1196,8 @@ DL_tigrinus_p <- left_join(DL_tigrinus, puntos)
 DL_perros_p <- left_join(DL_perros, puntos)
 # DL_tigrinus_p <- left_join(DL_tigrinus, puntos)
 
-
 ########## add spatial covs
+
 # make sf and add projection
 puntos_tigrinus_sf <- DL_tigrinus_p |> st_as_sf(coords = 
                               c("Longitude", "Latitude"), 
@@ -1187,8 +1229,6 @@ site_covs_ching <- get_elev_point(puntos_tigrinus_sf[332:356,],
                                 src = "aws", z = 12)
 site_covs_salda <- get_elev_point(puntos_tigrinus_sf[357:387,], 
                                 src = "aws", z = 12)
-site_covs_bogo <- get_elev_point(puntos_tigrinus_sf[388:479,], 
-                                src = "aws", z = 12)
 
 # combine points in one sf object
 site_covs <- rbind(site_covs_ucu, 
@@ -1199,8 +1239,7 @@ site_covs <- rbind(site_covs_ucu,
                    site_covs_ituango,
                    site_covs_coc2,
                    site_covs_ching,
-                   site_covs_salda,
-                   site_covs_bogo)#, 
+                   site_covs_salda)#, 
 #                   site_covs_coc2)
                    #z =1-14
 # bb <-  st_as_sfc(st_bbox(elevation_17)) # make bounding box 
@@ -1244,56 +1283,60 @@ site_covs3 <- site_covs |>
 # mapview(casa_dist_rast) + mapview(site_covs[,"camera_trap"])
 
 
-### dirty add for Chingaza, Ituango y Bogota dist_casa
+### dirty add for Chingaza e Ituango dist_casa
 site_covs$dist_casa[332:356] <- site_covs2$dist_casa.y #chingaza
 site_covs$dist_casa[225:278] <- replace_na(site_covs3$dist_casa.y, 610) # Ituango
-site_covs$dist_casa[388:479] <- tigrinus_Bogota$dist_casa*100000
 
 
-# ############################################
-# # Canopy High using package(forestdata)
-# ############################################
-# 
-# ucu_point <- puntos_tigrinus_sf |> filter (region=="Ucumari RP")
-# 
-# ucu_pol <- st_as_sf( # make sf
-#              st_buffer( # bufer 1 k
-#                st_as_sfc(# make sfc
-#                  st_bbox(ucu_point) # box around point
-#                  ), 
-#               dist = 500)# distance bufer 500m
-#              )
-# 
-# 
-# library(terra)
-# library(tidyterra)
-# library(aws.s3)
-# library(forestdata)
-# ## Download the data
-# ucumari_eth <- fd_canopy_height(
-#   x     = ucu_pol,
-#   model = "eth",
-#   crop  = TRUE
-#   #mask  = TRUE
-# )
-# 
-# 
-# ## Download the forest data... takes time!
-# ucumari_forest <- fd_forest_glad(
-#   x=ucu_pol,
-#   #lon = -75.53673, lat = 4.748044,
-#     year = 2020,
-#   model  = "landcover",
-#   # model = "eth",
-#   crop  = TRUE,
-#   mask  = TRUE
-# )
-# 
-# 
-# 
-# ## Print raster
-# print(ucumari_forest)
-# 
+
+##############
+# Canopy High
+##############
+
+ucu_point <- puntos_tigrinus_sf |> filter (region=="Ucumari RP")
+
+ucu_pol <- st_as_sf( # make sf
+             st_buffer( # bufer 1 k
+               st_as_sfc(# make sfc
+                 st_bbox(ucu_point) # box around point
+                 ), 
+              dist = 500)# distance bufer 500m
+             )
+
+
+library(terra)
+library(tidyterra)
+library(aws.s3)
+library(forestdata)
+## Download the data
+# very high resolution canopy height maps 10m
+ucumari_eth <- fd_canopy_height(
+  x     = ucu_pol,
+  model = "eth",
+  crop  = TRUE
+  #mask  = TRUE
+)
+
+
+## Download the GEDI forest data... takes time!
+#  0-60 Forest canopy height, meters
+# 30 m/pixel spatial resolution
+# https://doi.org/10.1016/j.rse.2020.112165
+ucumari_forest <- fd_forest_glad( #
+  x=ucu_pol,
+  #lon = -75.53673, lat = 4.748044,
+    year = 2020,
+  model  = "landcover",
+  # model = "eth",
+  crop  = TRUE,
+  mask  = TRUE
+)
+
+
+
+## Print raster
+#print(ucumari_forest)
+
 
 
 
@@ -1305,17 +1348,8 @@ site_covs$dist_casa[388:479] <- tigrinus_Bogota$dist_casa*100000
 ### General map
 
 ```{r}
-#| eval: true
-#| cache: true
-#| 
-# save
-# saveRDS(puntos_tigrinus_sf, file = "C:/CodigoR/tigrinus2/data/asembled/puntos_tigrinus_sf.rds")
-
-#load
-# Load the data from the RDS file
-puntos_tigrinus_sf <- readRDS(file = "C:/CodigoR/tigrinus2/data/asembled/puntos_tigrinus_sf.rds")
-
-# from package rnaturalearth
+#
+# fom rnaturalearth
 col <- ne_countries(country = "Colombia", scale = "medium")
 
 # general
@@ -1332,7 +1366,6 @@ tm_shape(puntos_tigrinus_sf, # add bb
 
 ```{r}
 #| column: body-outset
-#| eval: true
 #| 
 
 #####| column: screen-inset-shaded
@@ -1341,7 +1374,7 @@ tm_shape(puntos_tigrinus_sf, # add bb
 tm_shape(puntos_tigrinus_sf) +
     tm_basemap("OpenTopoMap") +# ("Esri.WorldImagery") + # usa basemap
    tm_symbols(shape = 21, col = "red", fill = "blue",size =0.4) + #punto negro
-  tm_facets(by = "region", ncol = 4)
+  tm_facets(by = "region", ncol = 3)
 
 ```
 
@@ -1349,28 +1382,6 @@ tm_shape(puntos_tigrinus_sf) +
 
 ```{r}
 #| output: true
-#| eval: true
-#| cache: true
-#| 
-# save
-# saveRDS(DL_tigrinus_p, file = "C:/CodigoR/tigrinus2/data/asembled/DL_tigrinus_p.rds")
-# saveRDS(DL_perros_p, file = "C:/CodigoR/tigrinus2/data/asembled/DL_perros_p.rds")
-# saveRDS(site_covs, file = "C:/CodigoR/tigrinus2/data/asembled/site_covs.rds")
-# saveRDS(DL_effort, file = "C:/CodigoR/tigrinus2/data/asembled/DL_effort.rds")
-
-
-
-#load
-# Load the data from the RDS file
-DL_tigrinus_p <- readRDS(file = "C:/CodigoR/tigrinus2/data/asembled/DL_tigrinus_p.rds")
-# Load the data from the RDS file
-DL_perros_p <- readRDS(file = "C:/CodigoR/tigrinus2/data/asembled/DL_perros_p.rds")
-# Load the data from the RDS file
-site_covs <- readRDS(file = "C:/CodigoR/tigrinus2/data/asembled/site_covs.rds")
-# Load the data from the RDS file
-DL_effort <- readRDS(file = "C:/CodigoR/tigrinus2/data/asembled/DL_effort.rds")
-
-
 
 detformulas <- c( "~1", "~1")#, "~1")
 #stateformulas <- c('~elev','~elev', '~elev', "~1", "~1", "~1", "~0")# 3 sp
@@ -1386,9 +1397,9 @@ names(y) <- c("tigrinus", "perros")#, "ocelote")
 # obs_covs <-as.data.frame(scale(cams_ucu_sf$dist_casa))
 # names(obs_covs) <- "dist_casa"
 
-site_covs_full <- data.frame(site_covs[,c('elev','dist_casa')])[,1:2]
-site_covs_full <-as.data.frame(apply(site_covs_full,2,scale)) # notice scale here
-names(site_covs_full) <- c("elev", "dist_casa")
+site_covs_ucu <- data.frame(site_covs[,c('elev','dist_casa')])[,1:2]
+site_covs_ucu <-as.data.frame(apply(site_covs_ucu,2,scale)) # notice scale here
+names(site_covs_ucu) <- c("elev", "dist_casa")
 
 
 #### effort
@@ -1401,7 +1412,7 @@ obs_covs <- list(
 library(unmarked)
 
 umf <-  unmarkedFrameOccuMulti(y = y, 
-                              siteCovs = site_covs_full,
+                              siteCovs = site_covs_ucu,
                               obsCovs  = obs_covs)#NULL)
 plot(umf)
 #umf
@@ -1420,7 +1431,7 @@ null <- occuMulti(null_det, null_occu,
                   silent=TRUE,
                   maxOrder=1, 
                   penalty =2,#0.5 * sum(paramvals^2)
-                  boot=100
+                  boot=500
                   )
 
 null
@@ -1430,7 +1441,7 @@ fit1 <- occuMulti(detformulas, stateformulas, umf,
         method="BFGS", se=TRUE, engine=c("C"), silent=TRUE,
         maxOrder=2, 
                   penalty =2,#0.5 * sum(paramvals^2)
-                  boot=100)
+                  boot=500)
 
 fit1
 
@@ -1453,7 +1464,7 @@ fit1_2 <- occuMulti(detFormulas_eff, stateformulas_2, umf,
         method="BFGS", se=TRUE, engine=c("C"), silent=TRUE,
         maxOrder=2, 
                   penalty =2,#0.5 * sum(paramvals^2)
-                  boot=100)
+                  boot=500)
 
 
 
@@ -1471,7 +1482,7 @@ fit1_2 <- occuMulti(detFormulas_eff, stateformulas_2, umf,
 
 ```{r}
 #| output: asis
-#| cache: true
+#| 
 #List of fitted models
 fmList <- fitList(#elev = fit1, 
                   #distCasa = fit2, 
@@ -1503,14 +1514,11 @@ DT::datatable(models_toExport) |>  formatRound(c('AIC',"delta", "AICwt", "cumltv
 #### Best model fit
 
 ```{r}
-#| cache: true
-#| eval: true
-#| 
 #############
 # Model fit #
 #############
 
-bt <- parboot(fit1_2, nsim=50) # takes time best model
+bt <- parboot(fit1_2, nsim=100) # takes time best model
 plot(bt)
 ```
 
@@ -1519,8 +1527,6 @@ plot(bt)
 look at occupancy for species individually.
 
 ```{r}
-#| eval: true
-#| cache: true
 #Plot predicted marginal occupancy as a function of disturbance
 r <- range(site_covs$elev)
 x1 <- seq(r[1],r[2],length.out=100)
@@ -1596,9 +1602,6 @@ ggplot(data=plot_dat, aes(x=rep(x1,2), y=Predicted)) + # change to 3 sp and x2 t
 ### plot predicted co-occurrence occupancy
 
 ```{r}
-#| eval: true
-#| cache: true
-#| 
 #Plot predicted marginal occupancy as a function of disturbance
 r <- range(site_covs$elev)
 x1 <- seq(r[1],r[2],length.out=100)
@@ -1646,9 +1649,6 @@ ggplot(data=plot_dat, aes(x=rep(x1), y=Predicted)) + # change to 3 sp and x2 to 
 you want to know the probability of occupancy of one species, conditional on the presence of another
 
 ```{r}
-#| eval: true
-#| cache: true
-#| 
 #Plot predicted marginal occupancy as a function of disturbance
 r <- range(site_covs$elev)
 x1 <- seq(r[1],r[2],length.out=100)
@@ -1771,7 +1771,6 @@ cond_fig1
 ## Package Citation
 
 ```{r}
-#| eval: true
 #| code-fold: true
 pkgs <- cite_packages(output = "paragraph", pkgs="Session", out.dir = ".")
 # knitr::kable(pkgs)
